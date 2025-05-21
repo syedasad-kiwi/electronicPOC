@@ -57,14 +57,23 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Configure Gemini
+# Load environment variables from .env file if running locally
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Load API key from environment variable or Streamlit secrets
 try:
     # First try to get from Streamlit secrets
     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 except:
     # If running locally, try to get from environment variable
-    import os
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyClhXJtXsGuAmvRHghpB68lMnw9YIyxFL4')  # Fallback for local development
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    if not GEMINI_API_KEY:
+        st.error("No Gemini API key found. Please set the GEMINI_API_KEY environment variable or Streamlit secret.")
+        st.stop()
 
 genai.configure(api_key=GEMINI_API_KEY)
 
