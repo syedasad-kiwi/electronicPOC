@@ -57,7 +57,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Configure Gemini
-GEMINI_API_KEY = 'AIzaSyClhXJtXsGuAmvRHghpB68lMnw9YIyxFL4'
+# Load API key from environment variable or Streamlit secrets
+try:
+    # First try to get from Streamlit secrets
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+except:
+    # If running locally, try to get from environment variable
+    import os
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyClhXJtXsGuAmvRHghpB68lMnw9YIyxFL4')  # Fallback for local development
+
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Initialize Gemini model
