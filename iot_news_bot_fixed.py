@@ -82,7 +82,11 @@ model = genai.GenerativeModel('gemini-2.0-flash')
 
 class IoTNewsBot:
     def __init__(self):
-        self.feed_url = "https://www.iotinsider.com/feed/"
+        self.feed_urls = [
+            "https://www.iotinsider.com/feed/",
+            "https://www.electronicspecifier.com/?format=rss",
+            "https://www.student-circuit.com/feed/"
+        ]
         self.history: List[Dict] = []
         self.model = model
 
@@ -104,66 +108,104 @@ class IoTNewsBot:
         return html.unescape(text.strip())
 
     def fetch_news(self) -> tuple[List[Dict], str]:
-        """Fetch the latest IoT news from the RSS feed."""
-        try:
-            feed = feedparser.parse(self.feed_url)
-            if hasattr(feed, 'bozo_exception'):
-                raise Exception(f"Feed error: {feed.bozo_exception}")
-            
-            if not feed.entries:
-                raise Exception("No entries found in the RSS feed")
-            
-            latest_posts = []
-            formatted_posts = []
-            
-            for entry in feed.entries[:10]:  # Get latest 10 entries
-                try:
-                    # Get full content if available, otherwise use description
-                    content = entry.get('content', [{'value': entry.get('description', '')}])[0]['value']
-                    clean_content = self.clean_html(content)
-                    
-                    # Format date
-                    pub_date = datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %z")
-                    formatted_date = pub_date.strftime("%B %d, %Y")
-                    
-                    # Get categories/tags if available
-                    categories = entry.get('tags', [])
-                    tags = [tag.get('term', '') for tag in categories if tag.get('term')]
-                    
-                    # Get author information
-                    authors = entry.get('authors', [])
-                    author_names = [author.get('name', '') for author in authors if author.get('name')]
-                    
-                    post_data = {
-                        "title": entry.title,
-                        "description": clean_content,
-                        "link": entry.link,
-                        "date": formatted_date,
-                        "tags": tags,
-                        "authors": author_names
-                    }
-                    latest_posts.append(post_data)
-                    
-                    # Format for context with more detailed information
-                    formatted_posts.append(f"""Title: {entry.title}
+        """Fetch the latest IoT news from multiple RSS feeds."""
+        all_posts = []
+        all_formatted_posts = []
+        
+        for feed_url in self.feed_urls:
+            try:
+                st.write(f"Fetching from: {feed_url}")
+                feed = feedparser.parse(feed_url)
+                
+                if hasattr(feed, 'bozo_exception') and feed.bozo:
+                    st.warning(f"Feed warning for {feed_url}: {feed.bozo_exception}")
+                    continue
+                
+                if not feed.entries:
+                    st.warning(f"No entries found in feed: {feed_url}")
+                    continue
+                
+                # Get source name from feed
+                source_name = feed.feed.get('title', feed_url.split('/')[2])
+                
+                for entry in feed.entries[:5]:  # Get latest 5 entries from each feed
+                    try:
+                        # Get full content if available, otherwise use description
+                        if hasattr(entry, 'content') and entry.content:
+                            content = entry.content[0]['value']
+                        else:
+                            content = entry.get('description', entry.get('summary', ''))
+                        
+                        clean_content = self.clean_html(content)
+                        
+                        # Format date - handle different date formats
+                        try:
+                            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                                pub_date = datetime(*entry.published_parsed[:6])
+                            elif hasattr(entry, 'published'):
+                                # Try different date formats
+                                for fmt in ["%a, %d %b %Y %H:%M:%S %z", "%a, %d %b %Y %H:%M:%S %Z", "%Y-%m-%dT%H:%M:%S%z"]:
+                                    try:
+                                        pub_date = datetime.strptime(entry.published, fmt)
+                                        break
+                                    except ValueError:
+                                        continue
+                                else:
+                                    pub_date = datetime.now()
+                            else:
+                                pub_date = datetime.now()
+                            
+                            formatted_date = pub_date.strftime("%B %d, %Y")
+                        except Exception:
+                            formatted_date = "Recent"
+                        
+                        # Get categories/tags if available
+                        categories = entry.get('tags', [])
+                        tags = [tag.get('term', '') for tag in categories if tag.get('term')]
+                        
+                        # Get author information
+                        authors = entry.get('authors', [])
+                        author_names = [author.get('name', '') for author in authors if author.get('name')]
+                        
+                        post_data = {
+                            "title": entry.title,
+                            "description": clean_content,
+                            "link": entry.link,
+                            "date": formatted_date,
+                            "tags": tags,
+                            "authors": author_names,
+                            "source": source_name
+                        }
+                        all_posts.append(post_data)
+                        
+                        # Format for context with more detailed information
+                        all_formatted_posts.append(f"""Title: {entry.title}
 Date: {formatted_date}
+Source: {source_name}
 {'Authors: ' + ', '.join(author_names) if author_names else ''}
 Full Content: {clean_content}
 Topics: {', '.join(tags) if tags else 'N/A'}
 Source URL: {entry.link}
 ---""")
-                except Exception as e:
-                    st.warning(f"Error processing entry: {str(e)}")
-                    continue
-            
-            if not latest_posts:
-                raise Exception("No valid entries could be processed")
-            
-            return latest_posts, "\n".join(formatted_posts)
-            
-        except Exception as e:
-            st.error(f"Error fetching news: {str(e)}")
+                    except Exception as e:
+                        st.warning(f"Error processing entry from {feed_url}: {str(e)}")
+                        continue
+                        
+            except Exception as e:
+                st.warning(f"Error fetching from {feed_url}: {str(e)}")
+                continue
+        
+        if not all_posts:
+            st.error("No valid entries could be processed from any feed")
             return [], ""
+        
+        # Sort posts by date (most recent first)
+        try:
+            all_posts.sort(key=lambda x: datetime.strptime(x['date'], "%B %d, %Y") if x['date'] != "Recent" else datetime.now(), reverse=True)
+        except:
+            pass  # If sorting fails, keep original order
+        
+        return all_posts, "\n".join(all_formatted_posts)
 
     def process_query(self, query: str) -> Generator[str, None, None]:
         """Process user query using Gemini and yield response chunks."""
