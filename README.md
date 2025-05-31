@@ -4,18 +4,35 @@ An AI-powered chatbot that provides insights and answers questions about the lat
 
 ## Features
 
-- Fetches the latest IoT news from [IoT Insider](https://www.iotinsider.com/)
-- Answers questions about IoT news using Gemini AI
-- Provides real-time streaming responses
-- Displays news articles in a sidebar for easy reference
-- Responsive and user-friendly interface
+- Fetches the latest IoT news from multiple sources including [IoT Insider](https://www.iotinsider.com/), Electronics Specifier, and Student Circuit.
+- Answers questions about IoT news using a Google ADK Agent powered by the Gemini LLM.
+- Enhanced user interface with a modern look, improved news display in the sidebar, and a user feedback mechanism for responses.
+- Provides clear, consolidated responses (ADK integration currently uses non-streaming responses).
+- Displays news articles in a sidebar for easy reference, with a manual refresh option.
+- Responsive and user-friendly interface.
 
 ## Technology Stack
 
-- **Streamlit**: For the web interface
-- **Google Generative AI (Gemini)**: For natural language processing
-- **Feedparser**: For RSS feed processing
-- **Python**: Core programming language
+- **Streamlit**: For the web interface.
+- **Google Agent Development Kit (ADK)**: For building and orchestrating AI agent logic.
+- **Google Gemini API**: The underlying Large Language Model used by the ADK agent.
+- **Feedparser**: For RSS feed processing.
+- **Pydantic**: For data modeling (e.g., `NewsItem`).
+- **Python**: Core programming language.
+
+## Architecture Overview
+
+The application has been refactored to use a Google ADK agent (`NewsAnalysisAgent`) for processing user queries and interacting with the Gemini LLM. This agent encapsulates the logic for understanding queries based on fetched news context.
+
+**Future Vision: Multi-Layered Agent System**
+
+The long-term architectural goal is to evolve this into a multi-layered agent system using ADK for more specialized processing. The conceptualized layers include:
+  - **Layer 1: News Aggregation & Normalization Agent (`NewsAggregatorAgent`):** Responsible for robustly fetching, cleaning, de-duplicating, and structuring news from various sources into `NewsItem` objects.
+  - **Layer 2: Query Understanding Agent (`QueryUnderstandingAgent`):** An LLM-based agent to perform nuanced analysis of user queries, identifying intent and key entities.
+  - **Layer 3: Information Retrieval & Synthesis Agent (`ResponseSynthesisAgent`):** An LLM-based agent to generate comprehensive answers based on the structured query and news data, including accurate source citation.
+
+This layered approach, orchestrated by a top-level ADK agent (e.g., `SequentialAgent`), aims to improve modularity, maintainability, and the quality of information processing. The current single agent is the first step towards this more sophisticated architecture.
+
 
 ## Setup and Installation
 
