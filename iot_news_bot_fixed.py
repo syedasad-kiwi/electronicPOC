@@ -226,7 +226,7 @@ class IoTNewsBot:
         raw_html = re.sub(r'<style.*?</style>', '', raw_html, flags=re.DOTALL)
         
         # Remove HTML tags but preserve line breaks
-        cleanr = re.compile('<br\s*/?>', re.IGNORECASE)
+        cleanr = re.compile(r'<br\s*/?>', re.IGNORECASE) # Use raw string for regex
         raw_html = cleanr.sub('\n', raw_html)
         cleanr = re.compile('<.*?>')
         text = cleanr.sub('', raw_html)
