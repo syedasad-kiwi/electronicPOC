@@ -41,6 +41,7 @@ This layered approach, orchestrated by a top-level ADK agent (e.g., `SequentialA
    ```
    pip install -r requirements.txt
    ```
+   *Note: Ensure you are in the correct Python virtual environment where your project will run, so that dependencies like `google-adk` are installed and accessible to the application.*
 3. Set up environment variables:
    - Create a `.env` file in the root directory based on `sample.env`
    - Add your Gemini API key to the `.env` file:
