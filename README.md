@@ -74,6 +74,26 @@ This application can be deployed on Streamlit Cloud for public access.
      GEMINI_API_KEY = "your_gemini_api_key_here"
      ```
 
+## Troubleshooting
+
+### Resolving 'inotify watch limit reached' Error
+
+If you encounter an `OSError: [Errno 28] inotify watch limit reached` while running the application, it means the system limit for file watchers has been exceeded. This is common in development environments with many files or projects.
+
+You can temporarily increase the limit by running:
+```bash
+sudo sysctl fs.inotify.max_user_watches=524288
+```
+
+To make this change permanent, you can edit the `/etc/sysctl.conf` file and add or modify the following line:
+```
+fs.inotify.max_user_watches=524288
+```
+Then apply the changes with `sudo sysctl -p`.
+
+Note: The value `524288` is a common recommendation, but you can adjust it based on your system's needs. Increasing this limit consumes a small amount of kernel memory per watch.
+
+
 ## License
 
 MIT
